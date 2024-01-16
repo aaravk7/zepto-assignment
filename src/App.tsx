@@ -1,92 +1,72 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
+import SelectedBadge from "./components/SelectedBadge";
+import Suggestions from "./components/Suggestions";
 import { DATA, User } from "./data";
 
 function App() {
   const [search, setSearch] = useState("");
-  const [filteredData, setFilteredData] = useState(DATA);
-  const [selected, setSelected] = useState<User[]>([]);
-  const [toBeDeleted, setToBeDeleted] = useState(false);
+  const [selected, setSelected] = useState<(User & { delete?: boolean })[]>([]);
 
-  useEffect(() => {
-    setToBeDeleted(false);
-    setFilteredData(() =>
-      DATA.filter(
-        (item) =>
-          item.name.includes(search) &&
-          !selected.find((x) => x.email === item.email)
-      )
+  const handleBackspace = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Backspace" && e.currentTarget.value === "") {
+      if (selected.find((item) => item.delete)) {
+        setSelected((prev) => prev.slice(0, -1));
+      } else {
+        setSelected((prev) =>
+          prev.map((item, index) =>
+            index === selected.length - 1 ? { ...item, delete: true } : item
+          )
+        );
+      }
+    }
+  };
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setSearch(e.currentTarget.value);
+    setSelected((prev) =>
+      prev.map((item) => (item.delete ? { ...item, delete: false } : item))
     );
-  }, [selected, search]);
+  };
 
+  const filteredData = DATA.filter(
+    (item) =>
+      item.name.includes(search) &&
+      !selected.find((x) => x.email === item.email)
+  );
   return (
     <div className="container mx-auto">
       <h1 className="text-blue-600 text-5xl font-bold text-center py-12">
         Pick Users
       </h1>
       <div className="w-full border-b-[3px] border-b-blue-600 py-2 flex gap-4 flex-wrap">
-        {selected.map((item, index) => (
-          <div
-            key={item.email}
-            className={`flex items-center gap-4 p-2 bg-slate-200 rounded-full justify-between border ${
-              index === selected.length - 1 && toBeDeleted
-                ? "border-blue-500"
-                : ""
-            }`}
-          >
-            <img
-              className="h-6 w-6 rounded-full"
-              src={item.image}
-              alt="User Avatar"
-            />
-            <span>{item.name}</span>
-            <button
-              className="cursor-pointer hover:bg-slate-400 h-6 w-6 rounded-full grid place-content-center transition"
-              onClick={() =>
-                setSelected((prev) =>
-                  prev.filter((x) => x.email !== item.email)
-                )
-              }
-            >
-              X
-            </button>
-          </div>
+        {selected.map((item) => (
+          <SelectedBadge
+            user={item}
+            onDelete={(email) =>
+              setSelected((prev) => prev.filter((x) => x.email !== email))
+            }
+          />
         ))}
         <div className="flex-1 relative">
           <input
             type="text"
             placeholder="Add new user..."
             value={search}
-            onKeyUp={(e) => {
-              if (e.key === "Backspace" && e.currentTarget.value === "") {
-                if (toBeDeleted) {
-                  setSelected((prev) => prev.slice(0, -1));
-                } else {
-                  setToBeDeleted(true);
-                }
-              }
-            }}
-            onChange={(e) => setSearch(e.currentTarget.value)}
+            onKeyUp={handleBackspace}
+            onChange={handleInputChange}
             className="py-2 outline-none w-full min-w-96"
           />
-          <div className="absolute flex flex-col top-[70px] bg-white shadow-[0px_12px_18px_rgba(0,0,0,0.4)] rounded max-h-64 overflow-auto cursor-pointer">
-            {filteredData.map((user) => (
-              <button
-                key={user.email}
-                className="grid grid-cols-2 gap-2 items-center hover:bg-slate-200 p-4 rounded"
-                onClick={() => setSelected((prev) => [...prev, user])}
-              >
-                <div className="flex gap-2 items-center">
-                  <img
-                    className="h-8 w-8 rounded-full"
-                    src={user.image}
-                    alt="User Avatar"
-                  />
-                  <h2 className="whitespace-nowrap font-bold">{user.name}</h2>
-                </div>
-                <span className="text-left">{user.email}</span>
-              </button>
-            ))}
-          </div>
+          <Suggestions
+            data={filteredData}
+            onSelect={(user) =>
+              setSelected((prev) => [
+                ...prev.map((item) =>
+                  item.delete ? { ...item, delete: false } : item
+                ),
+                user,
+              ])
+            }
+          />
         </div>
       </div>
     </div>
