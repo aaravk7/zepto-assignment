@@ -5,8 +5,10 @@ function App() {
   const [search, setSearch] = useState("");
   const [filteredData, setFilteredData] = useState(DATA);
   const [selected, setSelected] = useState<User[]>([]);
+  const [toBeDeleted, setToBeDeleted] = useState(false);
 
   useEffect(() => {
+    setToBeDeleted(false);
     setFilteredData(() =>
       DATA.filter(
         (item) =>
@@ -22,10 +24,14 @@ function App() {
         Pick Users
       </h1>
       <div className="w-full border-b-[3px] border-b-blue-600 py-2 flex gap-4 flex-wrap">
-        {selected.map((item) => (
+        {selected.map((item, index) => (
           <div
             key={item.email}
-            className="flex items-center gap-4 px-4 py-1 bg-slate-200 rounded-full justify-between"
+            className={`flex items-center gap-4 p-2 bg-slate-200 rounded-full justify-between border ${
+              index === selected.length - 1 && toBeDeleted
+                ? "border-blue-500"
+                : ""
+            }`}
           >
             <img
               className="h-6 w-6 rounded-full"
@@ -34,7 +40,7 @@ function App() {
             />
             <span>{item.name}</span>
             <button
-              className="cursor-pointer"
+              className="cursor-pointer hover:bg-slate-400 h-6 w-6 rounded-full grid place-content-center transition"
               onClick={() =>
                 setSelected((prev) =>
                   prev.filter((x) => x.email !== item.email)
@@ -50,6 +56,15 @@ function App() {
             type="text"
             placeholder="Add new user..."
             value={search}
+            onKeyUp={(e) => {
+              if (e.key === "Backspace" && e.currentTarget.value === "") {
+                if (toBeDeleted) {
+                  setSelected((prev) => prev.slice(0, -1));
+                } else {
+                  setToBeDeleted(true);
+                }
+              }
+            }}
             onChange={(e) => setSearch(e.currentTarget.value)}
             className="py-2 outline-none w-full min-w-96"
           />
